@@ -1,0 +1,20 @@
+{
+  "id": "./",
+  "name": "Tracker",
+  "short_name": "Tracker",
+  "description": "A premium offline-first habit tracker.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#151820",
+  "background_color": "#151820",
+  "icons": [
+    {
+      "src": "./icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

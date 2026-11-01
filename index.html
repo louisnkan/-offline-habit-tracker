@@ -1,0 +1,574 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#111522">
+  <meta name="description" content="A private, offline-first habit tracker. Build consistency one day at a time.">
+  <meta name="color-scheme" content="dark">
+  <title>Tracker — Midnight Focus</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #111522;
+      --surface: #191F30;
+      --surface-2: #20283B;
+      --surface-3: #151B2A;
+      --blue: #7294FF;
+      --lavender: #B6A0FF;
+      --text: #F3F5FC;
+      --muted: #929BB2;
+      --success: #65D6AD;
+      --warning: #FFC56E;
+      --danger: #FF8794;
+      --line: rgba(174,190,230,.10);
+      --shadow-raised: 8px 8px 20px rgba(0,0,0,.22), -5px -5px 16px rgba(255,255,255,.018);
+      --shadow-inset: inset 3px 3px 8px rgba(0,0,0,.22), inset -2px -2px 7px rgba(255,255,255,.018);
+      --radius: 20px;
+    }
+    * { box-sizing: border-box; }
+    html { min-height: 100%; background: var(--bg); }
+    body {
+      margin: 0; min-height: 100vh; color: var(--text);
+      background: radial-gradient(ellipse at 85% 0%, rgba(114,148,255,.09), transparent 34%), var(--bg);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+    }
+    button, input { font: inherit; }
+    button { -webkit-tap-highlight-color: transparent; }
+    button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--lavender); outline-offset: 3px; }
+    .app { width: min(100% - 32px, 620px); margin: 0 auto; padding: max(22px, env(safe-area-inset-top)) 0 max(34px, env(safe-area-inset-bottom)); }
+    .topbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:32px; }
+    .brand { display:flex; align-items:center; gap:11px; min-width:0; }
+    .brand-mark { width:42px; height:42px; border-radius:14px; overflow:hidden; box-shadow:0 5px 18px rgba(65,105,255,.16); flex:none; }
+    .brand-mark img { display:block; width:100%; height:100%; }
+    .brand-name { font-size:15px; font-weight:750; letter-spacing:.02em; }
+    .brand-sub { color:var(--muted); font-size:11px; margin-top:2px; letter-spacing:.08em; text-transform:uppercase; }
+    .status-pill { display:inline-flex; align-items:center; gap:7px; padding:8px 11px; border:1px solid var(--line); border-radius:999px; color:var(--muted); background:rgba(25,31,48,.72); font-size:11px; white-space:nowrap; }
+    .status-dot { width:7px; height:7px; border-radius:50%; background:var(--warning); }
+    .status-pill.online .status-dot { background:var(--success); }
+    .status-pill.offline .status-dot { background:var(--warning); }
+    .eyebrow { color:var(--blue); font-size:11px; font-weight:750; text-transform:uppercase; letter-spacing:.14em; }
+    h1 { font-size:clamp(28px, 7vw, 36px); line-height:1.12; letter-spacing:-.045em; margin:9px 0 7px; font-weight:760; }
+    .date-line { color:var(--muted); font-size:13px; }
+    .overview { margin-top:25px; padding:21px; border:1px solid var(--line); border-radius:var(--radius); background:linear-gradient(145deg, rgba(32,40,59,.96), rgba(25,31,48,.96)); box-shadow:var(--shadow-raised); }
+    .overview-top { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; }
+    .section-label { color:var(--muted); font-size:12px; font-weight:650; }
+    .percent { font-size:34px; font-weight:780; letter-spacing:-.055em; line-height:1; }
+    .percent small { font-size:16px; color:var(--muted); font-weight:600; }
+    .progress-track { height:9px; border-radius:99px; margin:18px 0 15px; overflow:hidden; background:#101523; box-shadow:var(--shadow-inset); }
+    .progress-fill { width:0%; height:100%; border-radius:inherit; background:linear-gradient(90deg, var(--blue), var(--lavender)); transition:width .45s cubic-bezier(.2,.8,.2,1); }
+    .stats { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .stat { padding:13px 14px; border-radius:15px; background:rgba(12,17,29,.28); border:1px solid rgba(255,255,255,.035); }
+    .stat-value { font-size:21px; font-weight:750; letter-spacing:-.03em; }
+    .stat-label { color:var(--muted); font-size:11px; margin-top:3px; }
+    .section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:30px 2px 13px; }
+    h2 { font-size:17px; margin:0; letter-spacing:-.02em; }
+    .count-label { color:var(--muted); font-size:12px; }
+    .add-form { display:flex; gap:9px; padding:9px; border-radius:17px; background:var(--surface-3); box-shadow:var(--shadow-inset); border:1px solid rgba(255,255,255,.035); }
+    .add-form input { width:100%; min-width:0; border:0; outline:0; color:var(--text); background:transparent; padding:8px 9px; font-size:14px; }
+    .add-form input::placeholder { color:#717C96; }
+    .primary-btn { flex:none; border:0; border-radius:12px; padding:0 17px; color:#10172A; background:var(--blue); font-size:13px; font-weight:750; cursor:pointer; transition:transform .16s, filter .16s; }
+    .primary-btn:active, .icon-btn:active, .install-btn:active { transform:scale(.97); }
+    .habit-list { display:grid; gap:11px; margin-top:15px; }
+    .habit-card { display:flex; align-items:center; gap:13px; padding:15px; min-height:76px; border:1px solid var(--line); border-radius:17px; background:var(--surface); box-shadow:var(--shadow-raised); animation:rise .28s ease both; }
+    @keyframes rise { from { opacity:0; transform:translateY(7px); } to { opacity:1; transform:translateY(0); } }
+    .check-btn { width:27px; height:27px; border-radius:9px; flex:none; border:1.5px solid #58647E; background:#141A29; color:#10172A; display:grid; place-items:center; cursor:pointer; transition:background .2s,border-color .2s,transform .2s; }
+    .check-btn[aria-pressed="true"] { background:var(--success); border-color:var(--success); transform:scale(1.02); }
+    .check-btn svg { width:15px; height:15px; opacity:0; transform:scale(.7); transition:.18s; }
+    .check-btn[aria-pressed="true"] svg { opacity:1; transform:scale(1); }
+    .habit-main { flex:1; min-width:0; }
+    .habit-name { font-size:14px; font-weight:650; overflow-wrap:anywhere; }
+    .habit-card.done .habit-name { color:#A9B3C8; }
+    .habit-meta { display:flex; align-items:center; gap:8px; margin-top:5px; color:var(--muted); font-size:11px; }
+    .streak { color:var(--warning); }
+    .delete-btn { width:34px; height:34px; border:0; border-radius:10px; color:#77829B; background:transparent; display:grid; place-items:center; cursor:pointer; }
+    .delete-btn:hover { color:var(--danger); background:rgba(255,135,148,.08); }
+    .delete-btn svg { width:17px; height:17px; }
+    .empty-state { text-align:center; padding:27px 18px; border:1px dashed rgba(174,190,230,.18); border-radius:17px; color:var(--muted); }
+    .empty-symbol { display:grid; place-items:center; width:44px; height:44px; margin:0 auto 12px; border-radius:15px; color:var(--lavender); background:rgba(182,160,255,.09); font-size:20px; }
+    .empty-state strong { display:block; color:var(--text); font-size:14px; margin-bottom:5px; }
+    .empty-state p { font-size:12px; line-height:1.55; margin:0; }
+    .all-done { color:var(--success); }
+    .install-card, .diagnostics { margin-top:22px; padding:17px; border:1px solid var(--line); border-radius:18px; background:rgba(25,31,48,.78); box-shadow:var(--shadow-raised); }
+    .install-row { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+    .install-title { font-size:14px; font-weight:700; }
+    .install-copy { margin-top:4px; color:var(--muted); font-size:11px; line-height:1.5; }
+    .install-btn { flex:none; min-height:39px; padding:0 14px; border:1px solid rgba(114,148,255,.35); border-radius:11px; background:rgba(114,148,255,.13); color:#B9C9FF; font-size:12px; font-weight:750; cursor:pointer; }
+    .install-btn:disabled { opacity:.55; cursor:default; }
+    details summary { cursor:pointer; color:var(--muted); font-size:12px; font-weight:650; list-style:none; display:flex; justify-content:space-between; align-items:center; }
+    details summary::-webkit-details-marker { display:none; }
+    .diag-list { display:grid; gap:10px; margin-top:16px; }
+    .diag-row { display:flex; justify-content:space-between; align-items:center; gap:12px; font-size:11px; }
+    .diag-label { color:var(--muted); }
+    .diag-value { text-align:right; font-weight:650; }
+    .good { color:var(--success); } .warn { color:var(--warning); } .bad { color:var(--danger); }
+    .footer { text-align:center; color:var(--muted); font-size:11px; line-height:1.7; margin:25px 0 0; }
+    .footer strong { color:#B8C1D5; font-weight:650; }
+    .toast { position:fixed; z-index:5; left:50%; bottom:calc(18px + env(safe-area-inset-bottom)); transform:translate(-50%, 16px); width:max-content; max-width:calc(100% - 36px); padding:12px 16px; border:1px solid var(--line); border-radius:12px; background:#252E43; color:var(--text); box-shadow:0 12px 32px rgba(0,0,0,.35); font-size:12px; opacity:0; pointer-events:none; transition:opacity .2s,transform .2s; }
+    .toast.show { opacity:1; transform:translate(-50%,0); }
+    .sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+    @media (min-width:540px) { .app { padding-top:34px; } .overview { padding:24px; } }
+    @media (prefers-reduced-motion:reduce) { *,*::before,*::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; } }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark"><img src="/icon-192.png" alt="" width="42" height="42"></div>
+        <div><div class="brand-name">Tracker</div><div class="brand-sub">Midnight Focus</div></div>
+      </div>
+      <div class="status-pill" id="networkStatus"><span class="status-dot"></span><span id="networkText">Checking connection</span></div>
+    </header>
+
+    <section aria-labelledby="welcomeTitle">
+      <div class="eyebrow">A little progress, every day</div>
+      <h1 id="welcomeTitle">Make today count.</h1>
+      <div class="date-line" id="currentDate">Loading date…</div>
+    </section>
+
+    <section class="overview" aria-label="Today's progress">
+      <div class="overview-top">
+        <div><div class="section-label">Today's progress</div><div class="section-label" id="progressSubtitle" style="margin-top:6px">Your daily rhythm starts here.</div></div>
+        <div class="percent"><span id="progressPercent">0</span><small>%</small></div>
+      </div>
+      <div class="progress-track" id="progressTrack" role="progressbar" aria-label="Today's habit completion" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+        <div class="progress-fill" id="progressFill"></div>
+      </div>
+      <div class="stats">
+        <div class="stat"><div class="stat-value" id="activeCount">0</div><div class="stat-label">Active habits</div></div>
+        <div class="stat"><div class="stat-value" id="completedCount">0</div><div class="stat-label">Completed today</div></div>
+      </div>
+    </section>
+
+    <section aria-labelledby="habitsHeading">
+      <div class="section-head"><h2 id="habitsHeading">Your habits</h2><span class="count-label" id="habitCount">0 habits</span></div>
+      <form class="add-form" id="habitForm" autocomplete="off">
+        <label class="sr-only" for="habitInput">New habit name</label>
+        <input id="habitInput" name="habit" type="text" maxlength="60" placeholder="Add a habit to your day…" required>
+        <button class="primary-btn" type="submit">Add habit</button>
+      </form>
+      <div class="habit-list" id="habitList" aria-live="polite" aria-relevant="additions removals text"></div>
+    </section>
+
+    <section class="install-card" aria-label="Install application">
+      <div class="install-row">
+        <div><div class="install-title">Take Tracker with you</div><div class="install-copy" id="installMessage">Install the app for a focused, app-like experience.</div></div>
+        <button class="install-btn" id="installButton" type="button">Install Tracker</button>
+      </div>
+    </section>
+
+    <section class="diagnostics">
+      <details id="diagnosticsDetails">
+        <summary><span>App & offline diagnostics</span><span aria-hidden="true">＋</span></summary>
+        <div class="diag-list" id="diagnosticsList">
+          <div class="diag-row"><span class="diag-label">Diagnostics</span><span class="diag-value">Checking…</span></div>
+        </div>
+        <p class="install-copy" id="diagnosticsNote">Checks run in this browser. An install prompt is controlled by the browser and may not be exposed on every platform.</p>
+      </details>
+    </section>
+
+    <footer class="footer"><strong>Your habits stay on this device.</strong><br>Private by design · No account · No cloud sync</footer>
+  </main>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+  (() => {
+    "use strict";
+
+    const STORAGE_KEY = "midnight_focus_habits_v1";
+    const LEGACY_KEY = "tracker_habits_v1";
+    const MAX_HABITS = 40;
+    const MAX_NAME = 60;
+    const $ = id => document.getElementById(id);
+    const el = {
+      date:$("currentDate"), form:$("habitForm"), input:$("habitInput"), list:$("habitList"),
+      count:$("habitCount"), percent:$("progressPercent"), subtitle:$("progressSubtitle"),
+      fill:$("progressFill"), track:$("progressTrack"), active:$("activeCount"),
+      completed:$("completedCount"), toast:$("toast"), network:$("networkStatus"),
+      networkText:$("networkText"), install:$("installButton"), installMessage:$("installMessage"),
+      diagnostics:$("diagnosticsList"), diagnosticsNote:$("diagnosticsNote")
+    };
+
+    let habits = [];
+    let storageBlocked = false;
+    let storageAvailable = true;
+    let toastTimer = 0;
+    let installPromptEvent = null;
+    let swRegistration = null;
+
+    function dateKey(date = new Date()) {
+      return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
+    }
+    function parseDateKey(key) {
+      if (typeof key !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(key)) return null;
+      const [y,m,d] = key.split("-").map(Number);
+      const date = new Date(y,m-1,d);
+      return date.getFullYear()===y && date.getMonth()===m-1 && date.getDate()===d ? date : null;
+    }
+    function shiftDateKey(key, amount) {
+      const d = parseDateKey(key);
+      if (!d) return null;
+      d.setDate(d.getDate()+amount);
+      return dateKey(d);
+    }
+    function dayOrdinal(key) {
+      const d = parseDateKey(key);
+      return d ? Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/86400000) : NaN;
+    }
+    function formatDate() {
+      return new Intl.DateTimeFormat(undefined,{weekday:"long",day:"numeric",month:"long",year:"numeric"}).format(new Date());
+    }
+    function isValidHabit(h) {
+      return h && typeof h.id==="string" && h.id.length>0 &&
+        typeof h.name==="string" && h.name.trim().length>0 && h.name.length<=MAX_NAME &&
+        typeof h.createdAt==="string" && !!parseDateKey(h.createdAt) &&
+        Array.isArray(h.completionDates) &&
+        h.completionDates.every(d=>!!parseDateKey(d));
+    }
+    function normalizeHabit(h) {
+      const dates = [...new Set(h.completionDates)].sort();
+      return {id:h.id,name:h.name.trim(),createdAt:h.createdAt,completionDates:dates};
+    }
+    function readStoredData() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw !== null) {
+          const parsed = JSON.parse(raw);
+          if (!parsed || parsed.version!==1 || !Array.isArray(parsed.habits) || !parsed.habits.every(isValidHabit)) {
+            throw new Error("Stored habit data has an unexpected format.");
+          }
+          habits = parsed.habits.map(normalizeHabit);
+          return;
+        }
+        // One-time best-effort migration from the previous app's data.
+        const legacyRaw = localStorage.getItem(LEGACY_KEY);
+        if (legacyRaw) {
+          const old = JSON.parse(legacyRaw);
+          if (!Array.isArray(old) || !old.every(h=>h && typeof h.id==="string" && typeof h.name==="string")) {
+            throw new Error("Previous habit data could not be safely migrated.");
+          }
+          habits = old.map(h=>({
+            id:h.id, name:h.name.trim().slice(0,MAX_NAME) || "Untitled habit",
+            createdAt:parseDateKey(h.createdAt) ? h.createdAt : dateKey(),
+            // Old storage retained only its last completion date, not a full history.
+            completionDates:parseDateKey(h.lastCompleted) ? [h.lastCompleted] : []
+          }));
+          if (habits.length) persist(habits);
+        } else {
+          habits = [];
+        }
+      } catch (error) {
+        console.error("Habit storage could not be read safely:",error);
+        storageBlocked = true;
+        showToast("Saved data could not be read. Existing data has been left untouched.");
+      }
+    }
+    function persist(nextHabits) {
+      if (storageBlocked) return false;
+      try {
+        localStorage.setItem(STORAGE_KEY,JSON.stringify({version:1,habits:nextHabits}));
+        storageAvailable = true;
+        return true;
+      } catch (error) {
+        console.error("Unable to save habits:",error);
+        storageAvailable = false;
+        showToast("Storage is unavailable. Your saved data was not changed.");
+        return false;
+      }
+    }
+    function currentStreak(habit) {
+      const dates = new Set(habit.completionDates);
+      let cursor = dates.has(dateKey()) ? dateKey() : shiftDateKey(dateKey(),-1);
+      if (!dates.has(cursor)) return 0;
+      let count = 0;
+      while (dates.has(cursor)) { count++; cursor=shiftDateKey(cursor,-1); }
+      return count;
+    }
+    function bestStreak(habit) {
+      const ordinals = [...new Set(habit.completionDates)].map(dayOrdinal).filter(Number.isFinite).sort((a,b)=>a-b);
+      let best=0, run=0, previous=null;
+      for (const n of ordinals) {
+        run = previous!==null && n===previous+1 ? run+1 : 1;
+        if (run>best) best=run;
+        previous=n;
+      }
+      return best;
+    }
+    function showToast(message) {
+      el.toast.textContent=message;
+      el.toast.classList.add("show");
+      clearTimeout(toastTimer);
+      toastTimer=setTimeout(()=>el.toast.classList.remove("show"),2600);
+    }
+    function make(tag,className,text) {
+      const node=document.createElement(tag);
+      if(className) node.className=className;
+      if(text!==undefined) node.textContent=text;
+      return node;
+    }
+    function commit(nextHabits, successMessage) {
+      if(storageBlocked) { showToast("Storage is in recovery mode; no changes were made."); return false; }
+      if(!persist(nextHabits)) return false;
+      habits=nextHabits;
+      render();
+      if(successMessage) showToast(successMessage);
+      return true;
+    }
+    function addHabit(name) {
+      const clean=name.trim().replace(/\s+/g," ");
+      if(!clean) { showToast("Enter a name for your habit."); el.input.focus(); return; }
+      if(clean.length>MAX_NAME) { showToast(`Keep habit names under ${MAX_NAME} characters.`); return; }
+      if(habits.length>=MAX_HABITS) { showToast(`You can track up to ${MAX_HABITS} habits.`); return; }
+      if(habits.some(h=>h.name.toLocaleLowerCase()===clean.toLocaleLowerCase())) {
+        showToast("That habit is already on your list."); return;
+      }
+      const id=window.crypto && typeof window.crypto.randomUUID==="function" ? window.crypto.randomUUID() :
+        `h-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const next=[{id,name:clean,createdAt:dateKey(),completionDates:[]},...habits];
+      if(commit(next,"Habit added. Make today count!")) { el.input.value=""; el.input.focus(); }
+    }
+    function toggleHabit(id) {
+      const target=habits.find(h=>h.id===id);
+      if(!target) return;
+      const today=dateKey();
+      const next=habits.map(h=>{
+        if(h.id!==id) return h;
+        const dates=new Set(h.completionDates);
+        if(dates.has(today)) dates.delete(today); else dates.add(today);
+        return {...h,completionDates:[...dates].sort()};
+      });
+      const wasDone=target.completionDates.includes(today);
+      commit(next,wasDone?"Today's completion undone.": "Well done. Progress updated.");
+    }
+    function deleteHabit(id) {
+      const target=habits.find(h=>h.id===id);
+      if(!target) return;
+      if(!window.confirm(`Delete “${target.name}” and its completion history? This cannot be undone.`)) return;
+      commit(habits.filter(h=>h.id!==id),"Habit deleted.");
+    }
+    function renderHabit(habit) {
+      const done=habit.completionDates.includes(dateKey());
+      const card=make("article",`habit-card${done?" done":""}`);
+      const check=make("button","check-btn");
+      check.type="button"; check.setAttribute("aria-pressed",String(done));
+      check.setAttribute("aria-label",`${done?"Undo completion of":"Mark complete:"} ${habit.name}`);
+      check.innerHTML='<svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m4 10 4 4 8-9" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      check.addEventListener("click",()=>toggleHabit(habit.id));
+      const main=make("div","habit-main");
+      const name=make("div","habit-name",habit.name);
+      const meta=make("div","habit-meta");
+      const streak=make("span","streak",`✦ ${currentStreak(habit)} day streak`);
+      const best=make("span","",`Best ${bestStreak(habit)}`);
+      meta.append(streak,best);
+      main.append(name,meta);
+      const del=make("button","delete-btn");
+      del.type="button"; del.setAttribute("aria-label",`Delete ${habit.name}`);
+      del.innerHTML='<svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M10 11v6m4-6v6M6 7l1 14h10l1-14M9 7V4h6v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      del.addEventListener("click",()=>deleteHabit(habit.id));
+      card.append(check,main,del);
+      return card;
+    }
+    function render() {
+      el.date.textContent=formatDate();
+      const today=dateKey();
+      const completed=habits.filter(h=>h.completionDates.includes(today)).length;
+      const total=habits.length;
+      const percent=total?Math.round(completed/total*100):0;
+      el.percent.textContent=String(percent);
+      el.fill.style.width=`${percent}%`;
+      el.track.setAttribute("aria-valuenow",String(percent));
+      el.active.textContent=String(total);
+      el.completed.textContent=String(completed);
+      el.count.textContent=`${total} ${total===1?"habit":"habits"}`;
+      el.subtitle.textContent=total===0?"Add one small habit to get started.":completed===total?"A perfect day. You showed up for yourself.":`${completed} of ${total} habits completed today`;
+      el.subtitle.classList.toggle("all-done",total>0&&completed===total);
+      el.list.replaceChildren();
+      if(!total) {
+        const empty=make("div","empty-state");
+        empty.append(make("div","empty-symbol","✦"),make("strong","","Your next chapter starts here."),make("p","","Add a habit above. Small, repeatable actions build lasting change."));
+        el.list.append(empty);
+      } else {
+        habits.forEach(h=>el.list.append(renderHabit(h)));
+        if(completed===total) {
+          const done=make("div","empty-state all-done");
+          done.append(make("div","empty-symbol","✓"),make("strong","","Everything is complete."),make("p","","Today's list is clear. Come back tomorrow and keep your rhythm going."));
+          el.list.append(done);
+        }
+      }
+      el.form.querySelector("button").disabled=storageBlocked;
+      el.input.disabled=storageBlocked;
+      if(storageBlocked) el.installMessage.textContent="Saved data is protected because the stored format could not be read.";
+    }
+    function updateNetwork() {
+      const online=navigator.onLine;
+      el.network.classList.toggle("online",online);
+      el.network.classList.toggle("offline",!online);
+      el.networkText.textContent=online?"Online":"Offline · local mode";
+    }
+    function isStandalone() {
+      return window.matchMedia("(display-mode: standalone)").matches || window.matchMedia("(display-mode: fullscreen)").matches || window.navigator.standalone===true;
+    }
+    function updateInstallUI() {
+      if(isStandalone()) {
+        el.install.textContent="Installed";
+        el.install.disabled=true;
+        el.installMessage.textContent="Tracker is running as an installed app.";
+      } else if(installPromptEvent) {
+        el.install.textContent="Install Tracker";
+        el.install.disabled=false;
+        el.installMessage.textContent="Your browser can offer an installation prompt.";
+      } else {
+        el.install.textContent="Install Tracker";
+        el.install.disabled=false;
+        el.installMessage.textContent="If no prompt appears, use your browser menu to install or add this app to your home screen.";
+      }
+    }
+    async function handleInstall() {
+      if(isStandalone()) { showToast("Tracker is already installed."); return; }
+      if(installPromptEvent) {
+        const promptEvent=installPromptEvent;
+        installPromptEvent=null;
+        updateInstallUI();
+        try {
+          await promptEvent.prompt();
+          const choice=await promptEvent.userChoice;
+          if(choice && choice.outcome==="accepted") showToast("Installation accepted. Finish the browser's installation steps.");
+          else showToast("Installation was cancelled. You can try again later.");
+        } catch(error) {
+          console.error("Install prompt failed:",error);
+          showToast("The browser could not open its install prompt.");
+        }
+        updateInstallUI();
+      } else {
+        const ua=navigator.userAgent;
+        let message="Open your browser menu and look for Install app or Add to Home screen.";
+        if(/iPhone|iPad|iPod/i.test(ua)) message="In Safari, tap Share, then Add to Home Screen.";
+        else if(/Android/i.test(ua)) message="In Chrome, tap ⋮, then look for Install app or Add to Home screen. The wording depends on browser eligibility.";
+        showToast(message);
+      }
+    }
+    async function checkImage(path,expectedSize) {
+      try {
+        const response=await fetch(path,{cache:"no-store"});
+        if(!response.ok) return {ok:false,label:`HTTP ${response.status}`};
+        const type=response.headers.get("content-type")||"";
+        if(!type.toLowerCase().includes("image/png")) return {ok:false,label:"Not served as PNG"};
+        const blob=await response.blob();
+        if(!("createImageBitmap" in window)) return {ok:true,label:"PNG fetched; dimensions not decoded"};
+        const bitmap=await createImageBitmap(blob);
+        const valid=bitmap.width===expectedSize&&bitmap.height===expectedSize;
+        const label=valid?`${bitmap.width} × ${bitmap.height} PNG`:`Wrong size: ${bitmap.width} × ${bitmap.height}`;
+        bitmap.close();
+        return {ok:valid,label};
+      } catch(error) { return {ok:false,label:"Fetch/decode failed"}; }
+    }
+    async function runDiagnostics() {
+      const rows=[];
+      const add=(label,value,kind)=>rows.push({label,value,kind});
+      add("Standalone display",isStandalone()?"Yes":"No — browser tab",isStandalone()?"good":"warn");
+      add("Service worker support","serviceWorker" in navigator?"Supported":"Not supported","serviceWorker" in navigator?"good":"bad");
+      let registration=null;
+      if("serviceWorker" in navigator) {
+        try {
+          registration=await navigator.serviceWorker.getRegistration("/");
+          swRegistration=registration||swRegistration;
+          add("Service worker registration",registration?"Registered":"Not registered",registration?"good":"warn");
+          add("Active worker",registration&&registration.active?"Active":registration?"Waiting / installing":"Not active",registration&&registration.active?"good":"warn");
+        } catch(error) { add("Service worker registration","Could not inspect","bad"); }
+      }
+      try {
+        const manifestResponse=await fetch("/manifest.json",{cache:"no-store"});
+        const manifestType=manifestResponse.headers.get("content-type")||"";
+        let manifestOk=false;
+        if(manifestResponse.ok && manifestType.includes("json")) {
+          const manifest=await manifestResponse.json();
+          manifestOk=manifest.display==="standalone" && manifest.start_url==="/" && Array.isArray(manifest.icons);
+        }
+        add("Manifest",manifestOk?"Fetched and parsed":"Missing, invalid or unexpected",manifestOk?"good":"bad");
+      } catch(error) { add("Manifest","Fetch or JSON parse failed","bad"); }
+      const [icon192,icon512]=await Promise.all([checkImage("/icon-192.png",192),checkImage("/icon-512.png",512)]);
+      add("192px app icon",icon192.label,icon192.ok?"good":"bad");
+      add("512px app icon",icon512.label,icon512.ok?"good":"bad");
+      let shellCached=false;
+      try {
+        if("caches" in window) {
+          const cacheNames=await caches.keys();
+          for(const name of cacheNames) {
+            if(name.startsWith("midnight-focus-shell-")) {
+              const cache=await caches.open(name);
+              const required=["/","/index.html","/manifest.json","/icon-192.png","/icon-512.png"];
+              const matches=await Promise.all(required.map(path=>cache.match(new URL(path,location.origin).href)));
+              shellCached=matches.every(Boolean);
+              break;
+            }
+          }
+        }
+      } catch(error) {}
+      add("Application shell cache",shellCached?"All required files found":"Not confirmed",shellCached?"good":"warn");
+      add("Install prompt",installPromptEvent?"Available now":isStandalone()?"Already installed":"Not exposed by browser",installPromptEvent||isStandalone()?"good":"warn");
+      el.diagnostics.replaceChildren();
+      rows.forEach(row=>{
+        const line=make("div","diag-row");
+        line.append(make("span","diag-label",row.label),make("span",`diag-value ${row.kind}`,row.value));
+        el.diagnostics.append(line);
+      });
+      const complete=rows.every(r=>r.kind==="good");
+      el.diagnosticsNote.textContent=complete
+        ?"All listed technical checks passed in this browser. Actual install availability is still controlled by the browser."
+        :"Some checks are incomplete or need attention. A warning is not necessarily a code failure; check the specific result above.";
+    }
+    el.form.addEventListener("submit",event=>{event.preventDefault();addHabit(el.input.value);});
+    el.install.addEventListener("click",handleInstall);
+    window.addEventListener("online",updateNetwork);
+    window.addEventListener("offline",updateNetwork);
+    window.addEventListener("beforeinstallprompt",event=>{
+      event.preventDefault();
+      installPromptEvent=event;
+      updateInstallUI();
+      runDiagnostics();
+    });
+    window.addEventListener("appinstalled",()=>{
+      installPromptEvent=null;
+      updateInstallUI();
+      showToast("Tracker was installed successfully.");
+      runDiagnostics();
+    });
+    document.addEventListener("visibilitychange",()=>{
+      if(!document.hidden) { render(); updateInstallUI(); runDiagnostics(); }
+    });
+    window.addEventListener("pageshow",()=>{render();updateInstallUI();});
+    updateNetwork();
+    readStoredData();
+    render();
+    updateInstallUI();
+
+    if("serviceWorker" in navigator && location.protocol==="https:") {
+      window.addEventListener("load",async()=>{
+        try {
+          swRegistration=await navigator.serviceWorker.register("/sw.js",{scope:"/"});
+          await navigator.serviceWorker.ready;
+          runDiagnostics();
+        } catch(error) {
+          console.error("Service worker registration failed:",error);
+          showToast("Offline setup failed. Check the service worker URL.");
+          runDiagnostics();
+        }
+      },{once:true});
+    } else {
+      runDiagnostics();
+    }
+    // Refresh date-dependent streaks if this tab remains open across midnight.
+    let lastDate=dateKey();
+    setInterval(()=>{
+      const now=dateKey();
+      if(now!==lastDate) { lastDate=now; render(); runDiagnostics(); }
+    },30000);
+  })();
+  </script>
+</body>
+</html>
